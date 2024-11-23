@@ -20,31 +20,21 @@ start_all() {
     done
 }
 
+
 deploy_job() {
-    echo "📦 Building Flink job..."
-    cd "flink-job"
-    mvn clean package -DskipTests
-    cd ..
-    mkdir -p target
-    cp "flink-job/target/flink-cdc-demo-1.0-SNAPSHOT.jar" target/
+    echo "📦 Building job..."
+    sbt "project flinkJob" clean assembly
 
-    echo "🚀 Submitting Flink job..."
-    JOB_ID=$(docker-compose exec -T jobmanager flink run -d \
-        -c OrderEnrichmentJob \
-        /opt/flink/usrlib/flink-cdc-demo-1.0-SNAPSHOT.jar | grep -o "JobID [a-z0-9]\{32\}" | cut -d' ' -f2)
-    
-    [ -z "$JOB_ID" ] && { echo "❌ Failed to submit job"; exit 1; }
-    echo "✅ Job submitted: $JOB_ID"
+    echo "🚀 Creating jobs directory and copying JAR..."
+    docker-compose exec jobmanager mkdir -p /opt/flink/jobs
+    docker cp \
+        "flink-job/target/scala-2.12/flink-job-assembly-0.1.0-SNAPSHOT.jar" \
+        "$(docker-compose ps -q jobmanager):/opt/flink/jobs/flink-job-assembly-0.1.0-SNAPSHOT.jar"
 
-    for i in {1..15}; do
-        JOB_STATUS=$(curl -s http://localhost:8081/jobs/$JOB_ID | grep -o '"state":"[^"]*"' | cut -d'"' -f4)
-        [ "$JOB_STATUS" = "RUNNING" ] && { echo "✅ Job is running"; return 0; }
-        [ "$JOB_STATUS" = "FAILED" ] && { echo "❌ Job failed"; exit 1; }
-        echo "⏳ Waiting for job... ($i/15)"
-        sleep 2
-    done
-    echo "❌ Timeout waiting for job"
-    exit 1
+    echo "🚀 Submitting job..."
+    docker-compose exec jobmanager flink run -d \
+        -c com.example.cdc.Main \
+        /opt/flink/jobs/flink-job-assembly-0.1.0-SNAPSHOT.jar
 }
 
 sample_records() {

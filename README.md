@@ -9,7 +9,9 @@ Real-time data replication from PostgreSQL to ClickHouse using Flink CDC.
 
 ## Prerequisites
 - Docker and Docker Compose
-- Maven
+- jvm
+- scala
+- sbt
 - curl (for deployment scripts)
 
 ## Quick Start
@@ -54,14 +56,15 @@ Real-time data replication from PostgreSQL to ClickHouse using Flink CDC.
 - Analytical database
 - Enriched orders table with customer data
 
+Cmd to check results of real-time job:
+```bash
+docker-compose exec clickhouse clickhouse-client -q "SELECT * FROM cdc_demo.enriched_orders"
+```
+
 ## Development
 
 Build the Flink job:
 ```bash
-cd flink-job
-mvn clean package -DskipTests
+sbt "project flinkJob" clean assembly
 ```
-
-Feel free to play with CDC Join Task, probably I'll rewrite in Scala when I make sense of Scala3 changed libs.
-
-The job JAR will be available at: `flink-job/target/flink-cdc-demo-1.0-SNAPSHOT.jar`
+Or you can just use sbt in a root as it's multimodule sbt project :) 

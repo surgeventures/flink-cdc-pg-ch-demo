@@ -50,8 +50,6 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
-    volumes:
-      - ./target:/opt/flink/usrlib
 
   taskmanager:
     image: flink:1.18.0
